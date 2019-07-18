@@ -24,7 +24,15 @@ else:
         VIDEO_TRANSCRIPT_MIGRATIONS_JOB_QUEUE,
     )
 
-FEATURES['ENABLE_LTI_PROVIDER'] = True
+# Turn on all the boolean feature flags, so that conditionally included
+# API endpoints will be found.
+for key, value in FEATURES.items():
+    if value is False:
+        FEATURES[key] = True
+
+# Settings that will fail if we enable them, and we don't need them for docs anyway.
+FEATURES['RUN_AS_ANALYTICS_SERVER_ENABLED'] = False
+FEATURES['ENABLE_SQL_TRACKING_LOGS'] = False
 
 INSTALLED_APPS.extend([
     'contentstore.apps.ContentstoreConfig',

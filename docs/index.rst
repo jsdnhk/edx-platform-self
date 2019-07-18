@@ -26,6 +26,7 @@ locations.
 
     guides
     docstrings/docstrings
+    openapi
 
 
 Change History
