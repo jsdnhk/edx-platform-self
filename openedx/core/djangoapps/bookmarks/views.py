@@ -95,6 +95,79 @@ class BookmarksViewMixin(object):
         )
 
 
+from django.utils.decorators import method_decorator
+from openedx.core.openapi import swagger_auto_schema, openapi
+
+@method_decorator(name='get', decorator=swagger_auto_schema(
+    operation_summary="Get a paginated list of bookmarks for a user.",
+    operation_description="""\
+        The list can be filtered by passing parameter "course_id=<course_id>"
+        to only include bookmarks from a particular course.
+
+        The bookmarks are always sorted in descending order by creation date.
+
+        Each page in the list contains 10 bookmarks by default. The page
+        size can be altered by passing parameter "page_size=<page_size>".
+
+        To include the optional fields pass the values in "fields" parameter
+        as a comma separated list. Possible values are:
+
+        * "display_name"
+        * "path"
+
+        Example:
+
+        ```
+        {
+            "count": 7,
+            "previous": null,
+            "num_pages": 1,
+            "results": [
+                {
+                    "badge_class": {
+                        "slug": "special_award",
+                        "issuing_component": "openedx__course",
+                        "display_name": "Very Special Award",
+                        "course_id": "course-v1:edX+DemoX+Demo_Course",
+                        "description": "Awarded for people who did something incredibly special",
+                        "criteria": "Do something incredibly special.",
+                        "image": "http://example.com/media/badge_classes/badges/special_xdpqpBv_9FYOZwN.png"
+                    },
+                    "image_url": "http://badges.example.com/media/issued/cd75b69fc1c979fcc1697c8403da2bdf.png",
+                    "assertion_url": "http://badges.example.com/public/assertions/07020647-e772-44dd-98b7-d13d34335ca6"
+                },
+                ...
+            ]
+        }
+        ```
+
+        """,
+    manual_parameters=[
+        openapi.Parameter(
+            'course_id',
+            openapi.IN_QUERY,
+            type=openapi.TYPE_STRING,
+            description="The id of the course, of course",
+            ),
+        openapi.Parameter(
+            'fields',
+            openapi.IN_QUERY,
+            type=openapi.TYPE_STRING,
+            description="""\
+                The fields to return: display_name, path.
+
+                Possible values are cat, dog.
+
+                * cat
+
+                * dog
+                """,
+            ),
+        ],
+    responses={
+        200: BookmarkSerializer,
+        },
+    ))
 class BookmarksListView(ListCreateAPIView, BookmarksViewMixin):
     """
     **Use Case**
@@ -220,6 +293,34 @@ class BookmarksListView(ListCreateAPIView, BookmarksViewMixin):
 
         return page
 
+    @swagger_auto_schema(
+        operation_summary="Create a new bookmark for a user.",
+        operation_description="""\
+            This is markdown
+
+            ## A heading, what will happen?
+
+            More content.
+
+            * A point
+
+            * Another point.
+
+            ```python
+            Some code!
+            (hello)
+            ```
+
+            More text.
+
+            ```
+            Untyped code.
+            ```
+
+            Last sentence.
+            """,
+        responses={404: 'bookmark not found', '447': 'never heard of it'},
+        )
     def post(self, request):
         """
         POST /api/bookmarks/v1/bookmarks/
