@@ -3602,9 +3602,18 @@ paths:
           description: ''
       tags:
         - api
+    put:
+      operationId: api_program_enrollments_v1_programs_enrollments_update
+      description: Create/modify program enrollments for a list of learners
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - api
     patch:
       operationId: api_program_enrollments_v1_programs_enrollments_partial_update
-      description: Modify the program enrollments for a list of learners
+      description: Modify program enrollments for a list of learners
       parameters: []
       responses:
         '200':

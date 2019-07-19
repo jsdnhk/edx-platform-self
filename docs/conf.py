@@ -285,6 +285,7 @@ def on_init(app):  # pylint: disable=unused-argument
     Read the Docs won't run tox or custom shell commands, so we need this to
     avoid checking in the generated reStructuredText files.
     """
+    return
     docs_path = root / 'docs'
     apidoc_path = 'sphinx-apidoc'
     if hasattr(sys, 'real_prefix'):  # Check to see if we are in a virtualenv

@@ -25,7 +25,6 @@ locations.
     :maxdepth: 2
 
     guides
-    docstrings/docstrings
     openapi
 
 
