@@ -790,3 +790,7 @@ section.self-assessment {
     color: $gray-d3 !important;
   }
 }
+
+#seq_content code:before {
+    @include display-left-to-right();
+}
