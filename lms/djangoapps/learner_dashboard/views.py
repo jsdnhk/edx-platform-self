@@ -1,5 +1,5 @@
 """Learner dashboard views"""
-from __future__ import absolute_import
+
 
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_GET
@@ -43,7 +43,7 @@ def program_details(request, program_uuid):
         'show_dashboard_tabs': True,
         'nav_hidden': True,
         'disable_courseware_js': True,
-        'uses_pattern_library': True,
+        'uses_bootstrap': True,
     }
 
     return render_to_response('learner_dashboard/program_details.html', context)

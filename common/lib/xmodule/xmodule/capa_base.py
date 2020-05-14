@@ -1,5 +1,5 @@
 """Implements basics of Capa, including class CapaModule."""
-from __future__ import absolute_import
+
 
 import copy
 import datetime
@@ -85,8 +85,8 @@ def randomization_bin(seed, problem_id):
     we'll combine the system's per-student seed with the problem id in picking the bin.
     """
     r_hash = hashlib.sha1()
-    r_hash.update(str(seed))
-    r_hash.update(str(problem_id))
+    r_hash.update(six.b(str(seed)))
+    r_hash.update(six.b(str(problem_id)))
     # get the first few digits of the hash, convert to an int, then mod.
     return int(r_hash.hexdigest()[:7], 16) % NUM_RANDOMIZATION_BINS
 
@@ -190,14 +190,12 @@ class CapaFields(object):
         scope=Scope.settings,
         default=False
     )
-    reset_key = "DEFAULT_SHOW_RESET_BUTTON"
-    default_reset_button = getattr(settings, reset_key) if hasattr(settings, reset_key) else False
     show_reset_button = Boolean(
         display_name=_("Show Reset Button"),
         help=_("Determines whether a 'Reset' button is shown so the user may reset their answer. "
                "A default value can be set in Advanced Settings."),
         scope=Scope.settings,
-        default=default_reset_button
+        default=False
     )
     rerandomize = Randomization(
         display_name=_("Randomization"),
@@ -296,7 +294,7 @@ class CapaMixin(ScorableXBlockMixin, CapaFields):
         except Exception as err:  # pylint: disable=broad-except
             msg = u'cannot create LoncapaProblem {loc}: {err}'.format(
                 loc=text_type(self.location), err=err)
-            six.reraise(Exception(msg), None, sys.exc_info()[2])
+            six.reraise(Exception, Exception(msg), sys.exc_info()[2])
 
         if self.score is None:
             self.set_score(self.score_from_lcp(lcp))
@@ -443,6 +441,7 @@ class CapaMixin(ScorableXBlockMixin, CapaFields):
         })
 
     def handle_fatal_lcp_error(self, error):
+        log.exception(u"LcpFatalError Encountered for {block}".format(block=str(self.location)))
         if error:
             return(
                 HTML(u'<p>Error formatting HTML for problem:</p><p><pre style="color:red">{msg}</pre></p>').format(
@@ -559,7 +558,14 @@ class CapaMixin(ScorableXBlockMixin, CapaFields):
 
         `err` is the Exception encountered while rendering the problem HTML.
         """
-        log.exception(text_type(err))
+        problem_display_name = self.display_name_with_default
+        problem_location = text_type(self.location)
+        log.exception(
+            u"ProblemGetHtmlError: %r, %r, %s",
+            problem_display_name,
+            problem_location,
+            text_type(err)
+        )
 
         # TODO (vshnayder): another switch on DEBUG.
         if self.runtime.DEBUG:
@@ -615,9 +621,14 @@ class CapaMixin(ScorableXBlockMixin, CapaFields):
             html = warning
             try:
                 html += self.lcp.get_html()
-            except Exception:
+            except Exception as error:
                 # Couldn't do it. Give up.
-                log.exception("Unable to generate html from LoncapaProblem")
+                log.exception(
+                    u"ProblemGetHtmlError: Unable to generate html from LoncapaProblem: %r, %r, %s",
+                    problem_display_name,
+                    problem_location,
+                    text_type(error)
+                )
                 raise
 
         return html
@@ -670,7 +681,7 @@ class CapaMixin(ScorableXBlockMixin, CapaFields):
                     )
                 ),
                 # Course-authored HTML demand hints are supported.
-                hint_text=HTML(get_inner_html_from_xpath(demand_hints[counter]))
+                hint_text=HTML(self.runtime.replace_urls(get_inner_html_from_xpath(demand_hints[counter])))
             )
             counter += 1
 
@@ -714,6 +725,7 @@ class CapaMixin(ScorableXBlockMixin, CapaFields):
             html = self.handle_problem_html_error(err)
 
         html = self.remove_tags_from_html(html)
+        _ = self.runtime.service(self, "i18n").ugettext
 
         # Enable/Disable Submit button if should_enable_submit_button returns True/False.
         submit_button = self.submit_button_name()
@@ -810,6 +822,7 @@ class CapaMixin(ScorableXBlockMixin, CapaFields):
 
             # Build the notification message based on the notification type and translate it.
             ungettext = self.runtime.service(self, "i18n").ungettext
+            _ = self.runtime.service(self, "i18n").ugettext
             if answer_notification_type == 'incorrect':
                 if progress is not None:
                     answer_notification_message = ungettext(

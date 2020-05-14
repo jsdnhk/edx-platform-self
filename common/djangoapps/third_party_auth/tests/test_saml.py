@@ -2,7 +2,6 @@
 Unit tests for third_party_auth SAML auth providers
 """
 
-from __future__ import absolute_import
 
 import mock
 
@@ -24,8 +23,8 @@ class TestEdXSAMLIdentityProvider(SAMLTestCase):
         error_mock = log_mock.error
         idp_class = get_saml_idp_class('fake_idp_class_option')
         error_mock.assert_called_once_with(
-            u'%s is not a valid EdXSAMLIdentityProvider subclass; using EdXSAMLIdentityProvider base class.',
-            'fake_idp_class_option'
+            u'[THIRD_PARTY_AUTH] Invalid EdXSAMLIdentityProvider subclass--'
+            u'using EdXSAMLIdentityProvider base class. Provider: {provider}'.format(provider='fake_idp_class_option')
         )
         self.assertIs(idp_class, EdXSAMLIdentityProvider)
 

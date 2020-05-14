@@ -3,7 +3,6 @@ Utilities for export a course's XML into a git repository,
 committing and pushing the changes.
 """
 
-from __future__ import absolute_import
 
 import logging
 import os
@@ -14,7 +13,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
-from six.moves.urllib.parse import urlparse  # pylint: disable=import-error
+from six.moves.urllib.parse import urlparse
 
 from xmodule.contentstore.django import contentstore
 from xmodule.modulestore.django import modulestore
@@ -108,7 +107,7 @@ def export_to_git(course_id, repo, user='', rdir=None):
         # Get current branch
         cmd = ['git', 'symbolic-ref', '--short', 'HEAD']
         try:
-            branch = cmd_log(cmd, cwd).strip('\n')
+            branch = cmd_log(cmd, cwd).decode('utf-8').strip('\n')
         except subprocess.CalledProcessError as ex:
             log.exception(u'Failed to get branch: %r', ex.output)
             raise GitExportError(GitExportError.DETACHED_HEAD)
@@ -146,7 +145,7 @@ def export_to_git(course_id, repo, user='', rdir=None):
     if not branch:
         cmd = ['git', 'symbolic-ref', '--short', 'HEAD']
         try:
-            branch = cmd_log(cmd, os.path.abspath(rdirp)).strip('\n')
+            branch = cmd_log(cmd, os.path.abspath(rdirp)).decode('utf-8').strip('\n')
         except subprocess.CalledProcessError as ex:
             log.exception(u'Failed to get branch from freshly cloned repo: %r',
                           ex.output)

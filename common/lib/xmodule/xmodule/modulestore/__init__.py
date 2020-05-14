@@ -3,7 +3,6 @@ This module provides an abstraction for working with XModuleDescriptors
 that are stored in a database an accessible using their Location as an identifier
 """
 
-from __future__ import absolute_import
 
 import datetime
 import logging
@@ -27,7 +26,7 @@ from xblock.runtime import Mixologist
 
 # The below import is not used within this module, but ir is still needed becuase
 # other modules are imorting EdxJSONEncoder from here
-from openedx.core.lib.json_utils import EdxJSONEncoder  # pylint: disable=unused-import
+from openedx.core.lib.json_utils import EdxJSONEncoder
 from xmodule.assetstore import AssetMetadata
 from xmodule.errortracker import make_error_tracker
 
@@ -388,7 +387,7 @@ class EditInfo(object):
         self.original_usage_version = edit_info.get('original_usage_version', None)
 
     def __repr__(self):
-        # pylint: disable=bad-continuation, redundant-keyword-arg
+        # pylint: disable=bad-continuation
         return ("{classname}(previous_version={self.previous_version}, "
                 "update_version={self.update_version}, "
                 "source_version={source_version}, "
@@ -475,7 +474,7 @@ class BlockData(object):
         return self.asides
 
     def __repr__(self):
-        # pylint: disable=bad-continuation, redundant-keyword-arg
+        # pylint: disable=bad-continuation
         return ("{classname}(fields={self.fields}, "
                 "block_type={self.block_type}, "
                 "definition={self.definition}, "
@@ -603,7 +602,7 @@ class ModuleStoreAssetBase(object):
         return mdata
 
     @contract(
-        course_key='CourseKey', asset_type='None | basestring',
+        course_key='CourseKey', asset_type='None | str',
         start='int | None', maxresults='int | None', sort='tuple(str,int) | None'
     )
     def get_all_asset_metadata(self, course_key, asset_type, start=0, maxresults=-1, sort=None, **kwargs):
@@ -1158,11 +1157,9 @@ class ModuleStoreWrite(six.with_metaclass(ABCMeta, ModuleStoreRead, ModuleStoreA
 
 # pylint: disable=abstract-method
 class ModuleStoreReadBase(BulkOperationsMixin, ModuleStoreRead):
-    '''
+    """
     Implement interface functionality that can be shared.
-    '''
-
-    # pylint: disable=invalid-name
+    """
     def __init__(
         self,
         contentstore=None,
@@ -1179,7 +1176,6 @@ class ModuleStoreReadBase(BulkOperationsMixin, ModuleStoreRead):
         '''
         super(ModuleStoreReadBase, self).__init__(**kwargs)
         self._course_errors = defaultdict(make_error_tracker)  # location -> ErrorLog
-        # pylint: disable=fixme
         # TODO move the inheritance_cache_subsystem to classes which use it
         self.metadata_inheritance_cache_subsystem = metadata_inheritance_cache_subsystem
         self.request_cache = request_cache
@@ -1195,7 +1191,6 @@ class ModuleStoreReadBase(BulkOperationsMixin, ModuleStoreRead):
         errors as get_item if course_key isn't present.
         """
         # check that item is present and raise the promised exceptions if needed
-        # pylint: disable=fixme
         # TODO (vshnayder): post-launch, make errors properties of items
         # self.get_item(location)
         assert isinstance(course_key, CourseKey)
@@ -1298,7 +1293,8 @@ class ModuleStoreWriteBase(ModuleStoreReadBase, ModuleStoreWrite):
         result = defaultdict(dict)
         if fields is None:
             return result
-        cls = self.mixologist.mix(XBlock.load_class(category, select=prefer_xmodules))
+        classes = XBlock.load_class(category, select=prefer_xmodules)
+        cls = self.mixologist.mix(classes)
         for field_name, value in six.iteritems(fields):
             field = getattr(cls, field_name)
             result[field.scope][field_name] = value

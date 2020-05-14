@@ -1,20 +1,19 @@
 """Test safe_exec.py"""
 
-from __future__ import absolute_import
 
 import hashlib
 import os
 import os.path
-import random
 import textwrap
 import unittest
 
 import pytest
+import random2 as random
 import six
-from six import text_type, unichr
-from six.moves import range
 from codejail.jail_code import is_configured
 from codejail.safe_exec import SafeExecException
+from six import text_type, unichr
+from six.moves import range
 
 from capa.safe_exec import safe_exec, update_hash
 

@@ -1,13 +1,13 @@
 """
 Discussion API serializers
 """
-from __future__ import absolute_import
+
 
 from django.contrib.auth.models import User as DjangoUser
 from django.core.exceptions import ValidationError
 from django.urls import reverse
 from rest_framework import serializers
-from six.moves.urllib.parse import urlencode, urlunparse  # pylint: disable=import-error
+from six.moves.urllib.parse import urlencode, urlunparse
 
 from lms.djangoapps.discussion.django_comment_client.utils import (
     course_discussion_division_enabled,
@@ -407,7 +407,7 @@ class CommentSerializer(_ContentSerializer):
                     "parent_id does not identify a comment in the thread identified by thread_id."
                 )
         if is_comment_too_deep(parent):
-            raise ValidationError({"parent_id": ["Comment level is too deep."]})
+            raise ValidationError("Comment level is too deep.")
         return attrs
 
     def create(self, validated_data):

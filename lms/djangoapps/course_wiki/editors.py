@@ -2,7 +2,6 @@
 Support for using the CodeMirror code editor as a wiki content editor.
 """
 
-from __future__ import absolute_import
 
 from django import forms
 from django.forms.utils import flatatt
@@ -30,7 +29,7 @@ class CodeMirrorWidget(forms.Widget):
             default_attrs.update(attrs)
         super(CodeMirrorWidget, self).__init__(default_attrs)
 
-    def render(self, name, value, attrs=None):
+    def render(self, name, value, attrs=None, renderer=None):
         if value is None:
             value = ''
 
@@ -58,7 +57,7 @@ class CodeMirror(BaseEditor):
     def get_widget(self, instance=None):
         return CodeMirrorWidget()
 
-    class AdminMedia(object):  # pylint: disable=missing-docstring
+    class AdminMedia(object):  # pylint: disable=missing-class-docstring
         css = {
             'all': ("wiki/markitup/skins/simple/style.css",
                     "wiki/markitup/sets/admin/style.css",)

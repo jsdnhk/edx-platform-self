@@ -1,6 +1,3 @@
-# pylint: disable=missing-docstring
-from __future__ import absolute_import
-
 import six
 from django.contrib.auth.models import User
 from django.http import Http404

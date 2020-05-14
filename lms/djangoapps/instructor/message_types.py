@@ -2,7 +2,6 @@
 ACE message types for the instructor module.
 """
 
-from __future__ import absolute_import
 
 from openedx.core.djangoapps.ace_common.message import BaseMessageType
 
@@ -17,7 +16,7 @@ class AccountCreationAndEnrollment(BaseMessageType):
 
     def __init__(self, *args, **kwargs):
         super(AccountCreationAndEnrollment, self).__init__(*args, **kwargs)
-        self.options['transactional'] = True  # pylint: disable=unsupported-assignment-operation
+        self.options['transactional'] = True
 
 
 class AddBetaTester(BaseMessageType):
@@ -28,7 +27,7 @@ class AddBetaTester(BaseMessageType):
 
     def __init__(self, *args, **kwargs):
         super(AddBetaTester, self).__init__(*args, **kwargs)
-        self.options['transactional'] = True  # pylint: disable=unsupported-assignment-operation
+        self.options['transactional'] = True
 
 
 class AllowedEnroll(BaseMessageType):
@@ -39,7 +38,7 @@ class AllowedEnroll(BaseMessageType):
 
     def __init__(self, *args, **kwargs):
         super(AllowedEnroll, self).__init__(*args, **kwargs)
-        self.options['transactional'] = True  # pylint: disable=unsupported-assignment-operation
+        self.options['transactional'] = True
 
 
 class AllowedUnenroll(BaseMessageType):
@@ -50,7 +49,7 @@ class AllowedUnenroll(BaseMessageType):
 
     def __init__(self, *args, **kwargs):
         super(AllowedUnenroll, self).__init__(*args, **kwargs)
-        self.options['transactional'] = True  # pylint: disable=unsupported-assignment-operation
+        self.options['transactional'] = True
 
 
 class EnrollEnrolled(BaseMessageType):
@@ -61,7 +60,7 @@ class EnrollEnrolled(BaseMessageType):
 
     def __init__(self, *args, **kwargs):
         super(EnrollEnrolled, self).__init__(*args, **kwargs)
-        self.options['transactional'] = True  # pylint: disable=unsupported-assignment-operation
+        self.options['transactional'] = True
 
 
 class EnrolledUnenroll(BaseMessageType):
@@ -72,7 +71,7 @@ class EnrolledUnenroll(BaseMessageType):
 
     def __init__(self, *args, **kwargs):
         super(EnrolledUnenroll, self).__init__(*args, **kwargs)
-        self.options['transactional'] = True  # pylint: disable=unsupported-assignment-operation
+        self.options['transactional'] = True
 
 
 class RemoveBetaTester(BaseMessageType):
@@ -83,4 +82,4 @@ class RemoveBetaTester(BaseMessageType):
 
     def __init__(self, *args, **kwargs):
         super(RemoveBetaTester, self).__init__(*args, **kwargs)
-        self.options['transactional'] = True  # pylint: disable=unsupported-assignment-operation
+        self.options['transactional'] = True

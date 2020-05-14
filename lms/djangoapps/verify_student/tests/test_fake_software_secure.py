@@ -2,6 +2,7 @@
 Tests for the fake software secure response.
 """
 
+
 from django.test import TestCase
 from mock import patch
 
@@ -76,6 +77,5 @@ class SoftwareSecureFakeViewEnabledTest(SoftwareSecureFakeViewTest):
             '/verify_student/software-secure-fake-response'
         )
 
-        self.assertEqual(response.status_code, 200)
-        self.assertIn('EdX-ID', response.content)
-        self.assertIn('results_callback', response.content)
+        self.assertContains(response, 'EdX-ID')
+        self.assertContains(response, 'results_callback')

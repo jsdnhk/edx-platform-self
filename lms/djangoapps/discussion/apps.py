@@ -4,7 +4,6 @@ Discussion Application Configuration
 Signal handlers are connected here.
 """
 
-from __future__ import absolute_import
 
 from django.apps import AppConfig
 
@@ -40,4 +39,4 @@ class DiscussionConfig(AppConfig):
         """
         Connect handlers to send notifications about discussions.
         """
-        from .signals import handlers  # pylint: disable=unused-variable
+        from .signals import handlers  # pylint: disable=unused-import

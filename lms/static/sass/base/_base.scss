@@ -145,7 +145,8 @@ a:visited:not(.btn) {
 
 .container {
   @include clearfix();
-  @include box-sizing(border-box);
+
+  box-sizing: border-box;
 
   @include media-breakpoint-up(md) {
     margin: 0 auto;
@@ -301,6 +302,33 @@ mark {
       @include left(40%);
 
       width: 20%;
+    }
+  }
+}
+
+div.reset-deadlines-banner {
+  background-color: theme-color("primary");
+  display: none;
+  flex-wrap: wrap;
+  padding: 15px 20px;
+  margin-top: 5px;
+
+  div.reset-deadlines-text {
+    color: theme-color("inverse");
+    margin: 10px 10px 10px 0;
+    flex: 0 1 auto;
+
+    a {
+      color: #fff;
+      text-decoration: underline;
+    }
+  }
+
+  form {
+    button {
+      color: #0075b4;
+      background-color: theme-color("inverse");
+      cursor: pointer;
     }
   }
 }

@@ -4,9 +4,10 @@ Allow course staff to see a student or staff view of courseware.
 Which kind of view has been selected is stored in the session state.
 '''
 
-import logging
 
+import logging
 from datetime import datetime
+
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User

@@ -20,9 +20,10 @@ Modulestore virtual   |          XML physical (draft, published)
              (a, a)   |  (a, a) | (x, a) | (x, x) | (x, y) | (a, x)
              (a, b)   |  (a, b) | (x, b) | (x, x) | (x, y) | (a, x)
 """
-from __future__ import absolute_import, print_function
+
 
 import json
+import io
 import logging
 import mimetypes
 import os
@@ -688,7 +689,7 @@ class LibraryImportManager(ImportManager):
         """
         Get the descriptor of the library from the XML import modulestore.
         """
-        source_library = self.xml_module_store.get_library(courselike_key)  # pylint: disable=no-member
+        source_library = self.xml_module_store.get_library(courselike_key)
         library, library_data_path = self.import_courselike(
             runtime, courselike_key, dest_id, source_library,
         )
@@ -744,7 +745,7 @@ def _update_and_import_module(
         """
         Move the module to a new course.
         """
-        def _convert_ref_fields_to_new_namespace(reference):  # pylint: disable=invalid-name
+        def _convert_ref_fields_to_new_namespace(reference):
             """
             Convert a reference to the new namespace, but only
             if the original namespace matched the original course.
@@ -926,9 +927,9 @@ def _import_course_draft(
                 # Skip any OSX quarantine files, prefixed with a '._'.
                 continue
             module_path = os.path.join(rootdir, filename)
-            with open(module_path, 'r') as f:
+            with io.open(module_path, 'r') as f:
                 try:
-                    xml = f.read().decode('utf-8')
+                    xml = f.read()
 
                     # The process_xml() call below recursively processes all descendants. If
                     # we call this on all verticals in a course with verticals nested below

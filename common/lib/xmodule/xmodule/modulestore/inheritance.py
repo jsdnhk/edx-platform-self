@@ -1,18 +1,17 @@
 """
 Support for inheritance of fields down an XBlock hierarchy.
 """
-from __future__ import absolute_import
 
-from django.conf import settings
+
 from django.utils import timezone
-
-from xmodule.partitions.partitions import UserPartition
 from xblock.core import XBlockMixin
-from xblock.fields import Scope, Boolean, String, Float, Dict, Integer, List
+from xblock.fields import Boolean, Dict, Float, Integer, List, Scope, String
 from xblock.runtime import KeyValueStore, KvsFieldData
-from xmodule.fields import Date, Timedelta
-from ..course_metadata_utils import DEFAULT_START_DATE
 
+from xmodule.fields import Date, Timedelta
+from xmodule.partitions.partitions import UserPartition
+
+from ..course_metadata_utils import DEFAULT_START_DATE
 
 # Make '_' a no-op so we can scrape strings
 # Using lambda instead of `django.utils.translation.ugettext_noop` because Django cannot be imported in this file
@@ -189,8 +188,6 @@ class InheritanceMixin(XBlockMixin):
         scope=Scope.settings
     )
 
-    reset_key = "DEFAULT_SHOW_RESET_BUTTON"
-    default_reset_button = getattr(settings, reset_key) if hasattr(settings, reset_key) else False
     show_reset_button = Boolean(
         display_name=_("Show Reset Button for Problems"),
         help=_(
@@ -199,7 +196,7 @@ class InheritanceMixin(XBlockMixin):
             "this course-wide setting is changed."
         ),
         scope=Scope.settings,
-        default=default_reset_button
+        default=False
     )
     edxnotes = Boolean(
         display_name=_("Enable Student Notes"),

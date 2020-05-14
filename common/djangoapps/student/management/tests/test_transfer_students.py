@@ -1,7 +1,7 @@
 """
 Tests the transfer student management command
 """
-from __future__ import absolute_import
+
 
 import unittest
 
@@ -13,7 +13,7 @@ from opaque_keys.edx import locator
 from six import text_type
 
 from course_modes.models import CourseMode
-from shoppingcart.models import CertificateItem, Order  # pylint: disable=import-error
+from shoppingcart.models import CertificateItem, Order
 from student.models import (
     EVENT_NAME_ENROLLMENT_ACTIVATED,
     EVENT_NAME_ENROLLMENT_DEACTIVATED,
@@ -93,7 +93,7 @@ class TestTransferStudents(ModuleStoreTestCase):
         self.assertTrue(self.signal_fired)
 
         # Confirm the analytics event was emitted.
-        self.mock_tracker.emit.assert_has_calls(  # pylint: disable=maybe-no-member
+        self.mock_tracker.emit.assert_has_calls(
             [
                 call(
                     EVENT_NAME_ENROLLMENT_ACTIVATED,
@@ -128,9 +128,9 @@ class TestTransferStudents(ModuleStoreTestCase):
         self.mock_tracker.reset_mock()
 
         # Confirm the enrollment mode is verified on the new courses, and enrollment is enabled as appropriate.
-        self.assertEquals((mode, False), CourseEnrollment.enrollment_mode_for_user(student, course.id))
-        self.assertEquals((mode, True), CourseEnrollment.enrollment_mode_for_user(student, new_course_one.id))
-        self.assertEquals((mode, True), CourseEnrollment.enrollment_mode_for_user(student, new_course_two.id))
+        self.assertEqual((mode, False), CourseEnrollment.enrollment_mode_for_user(student, course.id))
+        self.assertEqual((mode, True), CourseEnrollment.enrollment_mode_for_user(student, new_course_one.id))
+        self.assertEqual((mode, True), CourseEnrollment.enrollment_mode_for_user(student, new_course_two.id))
 
         # Confirm the student has not be refunded.
         target_certs = CertificateItem.objects.filter(
@@ -138,7 +138,7 @@ class TestTransferStudents(ModuleStoreTestCase):
         )
         self.assertTrue(target_certs[0])
         self.assertFalse(target_certs[0].refund_requested_time)
-        self.assertEquals(target_certs[0].order.status, 'purchased')
+        self.assertEqual(target_certs[0].order.status, 'purchased')
 
     def _create_course(self, course_location):
         """

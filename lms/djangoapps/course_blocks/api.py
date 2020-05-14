@@ -2,7 +2,7 @@
 API entry point to the course_blocks app with top-level
 get_course_blocks function.
 """
-from __future__ import absolute_import
+
 
 from django.conf import settings
 from edx_when import field_data
@@ -57,6 +57,7 @@ def get_course_blocks(
         starting_block_usage_key,
         transformers=None,
         collected_block_structure=None,
+        allow_start_dates_in_future=False,
 ):
     """
     A higher order function implemented on top of the
@@ -90,7 +91,7 @@ def get_course_blocks(
     """
     if not transformers:
         transformers = BlockStructureTransformers(get_course_block_access_transformers(user))
-    transformers.usage_info = CourseUsageInfo(starting_block_usage_key.course_key, user)
+    transformers.usage_info = CourseUsageInfo(starting_block_usage_key.course_key, user, allow_start_dates_in_future)
 
     return get_block_structure_manager(starting_block_usage_key.course_key).get_transformed(
         transformers,

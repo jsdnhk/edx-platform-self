@@ -3,7 +3,6 @@ Helper functions for managing interactions with the LTI outcomes service defined
 in LTI v1.1.
 """
 
-from __future__ import absolute_import
 
 import logging
 import uuid
@@ -38,7 +37,7 @@ def store_outcome_parameters(request_params, user, lti_consumer):
             # the LTI consumer that the request comes from then we may be able
             # to figure out the result service URL. As it stands, though, this
             # is a badly-formed LTI request
-            log.warn(
+            log.warning(
                 u"Outcome Service: lis_outcome_service_url parameter missing "
                 u"from scored assignment; we will be unable to return a score. "
                 u"Request parameters: %s",

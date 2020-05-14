@@ -2,7 +2,6 @@
 Definitions of all options used by the various bok_choy tasks.
 """
 
-from __future__ import absolute_import
 
 import os
 from optparse import make_option
@@ -88,5 +87,11 @@ BOKCHOY_OPTS = [
         action='store_true',
         dest="save_screenshots",
         help="deprecated in favor of save-screenshots"
+    ),
+    make_option(
+        '--with-wtw',
+        dest='with_wtw',
+        action='store',
+        help="Only run tests based on the lines changed relative to the specified branch"
     ),
 ]

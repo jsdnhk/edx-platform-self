@@ -2,7 +2,6 @@
 ACE message types for the verify_student module.
 """
 
-from __future__ import absolute_import
 
 from openedx.core.djangoapps.ace_common.message import BaseMessageType
 
@@ -14,4 +13,4 @@ class VerificationExpiry(BaseMessageType):
     def __init__(self, *args, **kwargs):
         super(VerificationExpiry, self).__init__(*args, **kwargs)
 
-        self.options['transactional'] = True  # pylint: disable=unsupported-assignment-operation
+        self.options['transactional'] = True

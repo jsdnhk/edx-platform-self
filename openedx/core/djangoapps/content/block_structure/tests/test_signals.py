@@ -1,7 +1,7 @@
 """
 Unit tests for the Course Blocks signals
 """
-from __future__ import absolute_import
+
 
 import ddt
 from mock import patch
@@ -60,7 +60,7 @@ class CourseBlocksSignalTest(ModuleStoreTestCase):
             self.course.display_name = test_display_name
             self.store.update_item(self.course, self.user.id)
 
-        self.assertEquals(mock_bs_manager_clear.called, invalidate_cache_enabled)
+        self.assertEqual(mock_bs_manager_clear.called, invalidate_cache_enabled)
 
     def test_course_delete(self):
         bs_manager = get_block_structure_manager(self.course.id)
@@ -75,7 +75,7 @@ class CourseBlocksSignalTest(ModuleStoreTestCase):
 
     @ddt.data(
         (CourseLocator(org='org', course='course', run='run'), True),
-        (LibraryLocator(org='org', course='course'), False),
+        (LibraryLocator(org='org', library='course'), False),
     )
     @ddt.unpack
     @patch('openedx.core.djangoapps.content.block_structure.tasks.update_course_in_cache_v2.apply_async')

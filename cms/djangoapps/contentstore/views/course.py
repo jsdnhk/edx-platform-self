@@ -1,7 +1,7 @@
 """
 Views related to operations on course objects
 """
-from __future__ import absolute_import
+
 
 import copy
 import json
@@ -39,7 +39,6 @@ from contentstore.course_group_config import (
 )
 from contentstore.course_info_model import delete_course_update, get_course_updates, update_course_updates
 from contentstore.courseware_index import CoursewareSearchIndexer, SearchIndexingError
-from contentstore.push_notification import push_notification_enabled
 from contentstore.tasks import rerun_course as rerun_course_task
 from contentstore.utils import (
     add_instructor,
@@ -55,6 +54,7 @@ from contentstore.views.entrance_exam import create_entrance_exam, delete_entran
 from course_action_state.managers import CourseActionStateItemNotFoundError
 from course_action_state.models import CourseRerunState, CourseRerunUIStateManager
 from course_creators.views import add_user_with_status_unrequested, get_course_creator_status
+from course_modes.models import CourseMode
 from edxmako.shortcuts import render_to_response
 from models.settings.course_grading import CourseGradingModel
 from models.settings.course_metadata import CourseMetadata
@@ -102,6 +102,7 @@ from .item import create_xblock_info
 from .library import LIBRARIES_ENABLED, get_library_creator_status
 
 log = logging.getLogger(__name__)
+
 
 __all__ = ['course_info_handler', 'course_handler', 'course_listing',
            'course_info_update_handler', 'course_search_index_handler',
@@ -206,7 +207,7 @@ def _course_notifications_json_get(course_action_state_id):
     return JsonResponse(action_state_info)
 
 
-def _dismiss_notification(request, course_action_state_id):  # pylint: disable=unused-argument
+def _dismiss_notification(request, course_action_state_id):
     """
     Update the display of the course notification
     """
@@ -380,7 +381,6 @@ def _accessible_courses_summary_iter(request, org=None):
         """
         Filter out unusable and inaccessible courses
         """
-        # pylint: disable=fixme
         # TODO remove this condition when templates purged from db
         if course_summary.location.course == 'templates':
             return False
@@ -411,7 +411,6 @@ def _accessible_courses_iter(request):
         if isinstance(course.id, CCXLocator):
             return False
 
-        # pylint: disable=fixme
         # TODO remove this condition when templates purged from db
         if course.location.course == 'templates':
             return False
@@ -440,7 +439,6 @@ def _accessible_courses_iter_for_tests(request):
         if isinstance(course.id, CCXLocator):
             return False
 
-        # pylint: disable=fixme
         # TODO remove this condition when templates purged from db
         if course.location.course == 'templates':
             return False
@@ -627,7 +625,8 @@ def course_index(request, course_key):
         lms_link = get_lms_link_for_item(course_module.location)
         reindex_link = None
         if settings.FEATURES.get('ENABLE_COURSEWARE_INDEX', False):
-            reindex_link = "/course/{course_id}/search_reindex".format(course_id=six.text_type(course_key))
+            if GlobalStaff().has_user(request.user):
+                reindex_link = "/course/{course_id}/search_reindex".format(course_id=six.text_type(course_key))
         sections = course_module.get_children()
         course_structure = _course_outline_json(request, course_module)
         locator_to_show = request.GET.get('show', None)
@@ -648,6 +647,12 @@ def course_index(request, course_key):
         deprecated_block_names = [block.name for block in deprecated_xblocks()]
         deprecated_blocks_info = _deprecated_blocks_info(course_module, deprecated_block_names)
 
+        frontend_app_publisher_url = configuration_helpers.get_value_for_org(
+            course_module.location.org,
+            'FRONTEND_APP_PUBLISHER_URL',
+            settings.FEATURES.get('FRONTEND_APP_PUBLISHER_URL', False)
+        )
+
         return render_to_response('course_outline.html', {
             'language_code': request.LANGUAGE_CODE,
             'context_course': course_module,
@@ -667,6 +672,7 @@ def course_index(request, course_key):
                     'action_state_id': current_action.id,
                 },
             ) if current_action else None,
+            'frontend_app_publisher_url': frontend_app_publisher_url,
         })
 
 
@@ -966,7 +972,6 @@ def course_info_handler(request, course_key_string):
                     'updates_url': reverse_course_url('course_info_update_handler', course_key),
                     'handouts_locator': course_key.make_usage_key('course_info', 'handouts'),
                     'base_asset_url': StaticContent.get_base_url_path_for_course_assets(course_module.id),
-                    'push_notification_enabled': push_notification_enabled()
                 }
             )
         else:
@@ -1047,7 +1052,12 @@ def settings_handler(request, course_key_string):
 
             # see if the ORG of this course can be attributed to a defined configuration . In that case, the
             # course about page should be editable in Studio
-            marketing_site_enabled = configuration_helpers.get_value_for_org(
+            publisher_enabled = configuration_helpers.get_value_for_org(
+                course_module.location.org,
+                'ENABLE_PUBLISHER',
+                settings.FEATURES.get('ENABLE_PUBLISHER', False)
+            )
+            marketing_enabled = configuration_helpers.get_value_for_org(
                 course_module.location.org,
                 'ENABLE_MKTG_SITE',
                 settings.FEATURES.get('ENABLE_MKTG_SITE', False)
@@ -1058,8 +1068,8 @@ def settings_handler(request, course_key_string):
                 settings.FEATURES.get('ENABLE_EXTENDED_COURSE_DETAILS', False)
             )
 
-            about_page_editable = not marketing_site_enabled
-            enrollment_end_editable = GlobalStaff().has_user(request.user) or not marketing_site_enabled
+            about_page_editable = not publisher_enabled
+            enrollment_end_editable = GlobalStaff().has_user(request.user) or not publisher_enabled
             short_description_editable = configuration_helpers.get_value_for_org(
                 course_module.location.org,
                 'EDITABLE_SHORT_DESCRIPTION',
@@ -1067,6 +1077,10 @@ def settings_handler(request, course_key_string):
             )
             sidebar_html_enabled = course_experience_waffle().is_enabled(ENABLE_COURSE_ABOUT_SIDEBAR_HTML)
             # self_paced_enabled = SelfPacedConfiguration.current().enabled
+
+            verified_mode = CourseMode.verified_mode_for_course(course_key, include_expired=True)
+            upgrade_deadline = (verified_mode and verified_mode.expiration_datetime and
+                                verified_mode.expiration_datetime.isoformat())
 
             settings_context = {
                 'context_course': course_module,
@@ -1077,6 +1091,7 @@ def settings_handler(request, course_key_string):
                 'video_thumbnail_image_url': course_image_url(course_module, 'video_thumbnail_image'),
                 'details_url': reverse_course_url('settings_handler', course_key),
                 'about_page_editable': about_page_editable,
+                'marketing_enabled': marketing_enabled,
                 'short_description_editable': short_description_editable,
                 'sidebar_html_enabled': sidebar_html_enabled,
                 'upload_asset_url': upload_asset_url,
@@ -1088,7 +1103,8 @@ def settings_handler(request, course_key_string):
                 'enrollment_end_editable': enrollment_end_editable,
                 'is_prerequisite_courses_enabled': is_prerequisite_courses_enabled(),
                 'is_entrance_exams_enabled': is_entrance_exams_enabled(),
-                'enable_extended_course_details': enable_extended_course_details
+                'enable_extended_course_details': enable_extended_course_details,
+                'upgrade_deadline': upgrade_deadline,
             }
             if is_prerequisite_courses_enabled():
                 courses, in_process_course_actions = get_courses_accessible_to_user(request)
@@ -1294,12 +1310,24 @@ def advanced_settings_handler(request, course_key_string):
     course_key = CourseKey.from_string(course_key_string)
     with modulestore().bulk_operations(course_key):
         course_module = get_course_and_check_access(course_key, request.user)
+
+        advanced_dict = CourseMetadata.fetch(course_module)
+        if settings.FEATURES.get('DISABLE_MOBILE_COURSE_AVAILABLE', False):
+            advanced_dict.get('mobile_available')['deprecated'] = True
+
         if 'text/html' in request.META.get('HTTP_ACCEPT', '') and request.method == 'GET':
+            publisher_enabled = configuration_helpers.get_value_for_org(
+                course_module.location.org,
+                'ENABLE_PUBLISHER',
+                settings.FEATURES.get('ENABLE_PUBLISHER', False)
+            )
 
             return render_to_response('settings_advanced.html', {
                 'context_course': course_module,
-                'advanced_dict': CourseMetadata.fetch(course_module),
-                'advanced_settings_url': reverse_course_url('advanced_settings_handler', course_key)
+                'advanced_dict': advanced_dict,
+                'advanced_settings_url': reverse_course_url('advanced_settings_handler', course_key),
+                'publisher_enabled': publisher_enabled,
+
             })
         elif 'application/json' in request.META.get('HTTP_ACCEPT', ''):
             if request.method == 'GET':
@@ -1352,6 +1380,8 @@ def validate_textbooks_json(text):
     """
     Validate the given text as representing a single PDF textbook
     """
+    if isinstance(text, (bytes, bytearray)):  # data appears as bytes
+        text = text.decode('utf-8')
     try:
         textbooks = json.loads(text)
     except ValueError:
@@ -1372,6 +1402,8 @@ def validate_textbook_json(textbook):
     """
     Validate the given text as representing a list of PDF textbooks
     """
+    if isinstance(textbook, (bytes, bytearray)):  # data appears as bytes
+        textbook = textbook.decode('utf-8')
     if isinstance(textbook, six.string_types):
         try:
             textbook = json.loads(textbook)

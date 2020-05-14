@@ -1,7 +1,7 @@
 """
 Start Date Transformer implementation.
 """
-from __future__ import absolute_import
+
 
 from lms.djangoapps.courseware.access_utils import check_start_date
 from openedx.core.djangoapps.content.block_structure.transformer import (
@@ -71,7 +71,7 @@ class StartDateTransformer(FilteringTransformerMixin, BlockStructureTransformer)
 
     def transform_block_filters(self, usage_info, block_structure):
         # Users with staff access bypass the Start Date check.
-        if usage_info.has_staff_access:
+        if usage_info.has_staff_access or usage_info.allow_start_dates_in_future:
             return [block_structure.create_universal_filter()]
 
         removal_condition = lambda block_key: not check_start_date(

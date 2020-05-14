@@ -1,8 +1,7 @@
-# pylint: disable=unicode-format-string
 """
 A class used for defining and running test suites
 """
-from __future__ import absolute_import, print_function
+
 
 import os
 import subprocess

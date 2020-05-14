@@ -1,8 +1,7 @@
-# pylint: disable=unicode-format-string
 """
 Class used for defining and running Bok Choy acceptance test suite
 """
-from __future__ import absolute_import, print_function
+
 
 import os
 from time import sleep
@@ -204,7 +203,7 @@ class BokChoyTestSuite(TestSuite):
         check_services()
 
         if not self.testsonly:
-            call_task('prepare_bokchoy_run', options={'log_dir': self.log_dir})
+            call_task('prepare_bokchoy_run', options={'log_dir': self.log_dir, 'coveragerc': self.coveragerc})
         else:
             # load data in db_fixtures
             load_bok_choy_data()  # pylint: disable=no-value-for-parameter
@@ -300,6 +299,7 @@ class BokChoyTestSuite(TestSuite):
         # screenshots and XUnit XML reports
         cmd = [
             "DEFAULT_STORE={}".format(self.default_store),
+            "SAVED_SOURCE_DIR='{}'".format(self.log_dir),
             "SCREENSHOT_DIR='{}'".format(self.log_dir),
             "BOK_CHOY_HAR_DIR='{}'".format(self.har_dir),
             "BOKCHOY_A11Y_CUSTOM_RULES_FILE='{}'".format(self.a11y_file),
@@ -322,8 +322,14 @@ class BokChoyTestSuite(TestSuite):
         cmd += [
             "-m",
             "pytest",
-            test_spec,
-        ] + self.verbosity_processes_command
+        ]
+        if self.coveragerc:
+            cmd.extend([
+                '-p',
+                'openedx.testing.coverage_context_listener.pytest_plugin',
+            ])
+        cmd.append(test_spec)
+        cmd.extend(self.verbosity_processes_command)
         if self.extra_args:
             cmd.append(self.extra_args)
         cmd.extend(self.passthrough_options)

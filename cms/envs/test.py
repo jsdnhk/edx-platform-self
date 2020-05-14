@@ -11,14 +11,12 @@ sessions. Assumes structure:
 
 # We intentionally define lots of variables that aren't used, and
 # want to import all variables from base settings files
-# pylint: disable=wildcard-import, unused-wildcard-import, wrong-import-order
+# pylint: disable=wildcard-import, unused-wildcard-import
 
-from __future__ import absolute_import
 
 from .common import *
 import os
 from uuid import uuid4
-
 
 from django.utils.translation import ugettext_lazy
 from path import Path as path
@@ -27,7 +25,6 @@ from openedx.core.lib.derived import derive_settings
 from util.db import NoOpMigrationModules
 
 # import settings from LMS for consistent behavior with CMS
-# pylint: disable=unused-import
 from lms.envs.test import (
     COMPREHENSIVE_THEME_DIRS,
     DEFAULT_FILE_STORAGE,
@@ -134,16 +131,9 @@ DATABASES = {
     },
 }
 
-if os.environ.get('DISABLE_MIGRATIONS'):
-    # Create tables directly from apps' models. This can be removed once we upgrade
-    # to Django 1.9, which allows setting MIGRATION_MODULES to None in order to skip migrations.
-    MIGRATION_MODULES = NoOpMigrationModules()
-
 LMS_BASE = "localhost:8000"
 LMS_ROOT_URL = "http://{}".format(LMS_BASE)
 FEATURES['PREVIEW_LMS_BASE'] = "preview.localhost"
-LOGIN_URL = EDX_ROOT_URL + '/signin'
-
 
 CACHES = {
     # This is the cache used for most things. Askbot will not work without a
@@ -182,6 +172,12 @@ CACHES = {
     },
 }
 
+############################### BLOCKSTORE #####################################
+# Blockstore tests
+RUN_BLOCKSTORE_TESTS = os.environ.get('EDXAPP_RUN_BLOCKSTORE_TESTS', 'no').lower() in ('true', 'yes', '1')
+BLOCKSTORE_API_URL = os.environ.get('EDXAPP_BLOCKSTORE_API_URL', "http://edx.devstack.blockstore-test:18251/api/v1/")
+BLOCKSTORE_API_AUTH_TOKEN = os.environ.get('EDXAPP_BLOCKSTORE_API_AUTH_TOKEN', 'edxapp-test-key')
+
 ################################# CELERY ######################################
 
 CELERY_ALWAYS_EAGER = True
@@ -215,74 +211,6 @@ FEATURES['ENABLE_SERVICE_STATUS'] = True
 
 # Toggles embargo on for testing
 FEATURES['EMBARGO'] = True
-
-FEATURES['ENABLE_COMBINED_LOGIN_REGISTRATION'] = True
-
-# set up some testing for microsites
-FEATURES['USE_MICROSITES'] = True
-MICROSITE_ROOT_DIR = COMMON_ROOT / 'test' / 'test_sites'
-MICROSITE_CONFIGURATION = {
-    "test_site": {
-        "domain_prefix": "test-site",
-        "university": "test_site",
-        "platform_name": "Test Site",
-        "logo_image_url": "test_site/images/header-logo.png",
-        "email_from_address": "test_site@edx.org",
-        "payment_support_email": "test_site@edx.org",
-        "ENABLE_MKTG_SITE": False,
-        "SITE_NAME": "test_site.localhost",
-        "course_org_filter": "TestSiteX",
-        "course_about_show_social_links": False,
-        "css_overrides_file": "test_site/css/test_site.css",
-        "show_partners": False,
-        "show_homepage_promo_video": False,
-        "course_index_overlay_text": "This is a Test Site Overlay Text.",
-        "course_index_overlay_logo_file": "test_site/images/header-logo.png",
-        "homepage_overlay_html": "<h1>This is a Test Site Overlay HTML</h1>",
-        "ALWAYS_REDIRECT_HOMEPAGE_TO_DASHBOARD_FOR_AUTHENTICATED_USER": False,
-        "COURSE_CATALOG_VISIBILITY_PERMISSION": "see_in_catalog",
-        "COURSE_ABOUT_VISIBILITY_PERMISSION": "see_about_page",
-        "ENABLE_SHOPPING_CART": True,
-        "ENABLE_PAID_COURSE_REGISTRATION": True,
-        "SESSION_COOKIE_DOMAIN": "test_site.localhost",
-        "urls": {
-            'ABOUT': 'test-site/about',
-            'PRIVACY': 'test-site/privacy',
-            'TOS_AND_HONOR': 'test-site/tos-and-honor',
-        },
-    },
-    "site_with_logistration": {
-        "domain_prefix": "logistration",
-        "university": "logistration",
-        "platform_name": "Test logistration",
-        "logo_image_url": "test_site/images/header-logo.png",
-        "email_from_address": "test_site@edx.org",
-        "payment_support_email": "test_site@edx.org",
-        "ENABLE_MKTG_SITE": False,
-        "ENABLE_COMBINED_LOGIN_REGISTRATION": True,
-        "SITE_NAME": "test_site.localhost",
-        "course_org_filter": "LogistrationX",
-        "course_about_show_social_links": False,
-        "css_overrides_file": "test_site/css/test_site.css",
-        "show_partners": False,
-        "show_homepage_promo_video": False,
-        "course_index_overlay_text": "Logistration.",
-        "course_index_overlay_logo_file": "test_site/images/header-logo.png",
-        "homepage_overlay_html": "<h1>This is a Logistration HTML</h1>",
-        "ALWAYS_REDIRECT_HOMEPAGE_TO_DASHBOARD_FOR_AUTHENTICATED_USER": False,
-        "COURSE_CATALOG_VISIBILITY_PERMISSION": "see_in_catalog",
-        "COURSE_ABOUT_VISIBILITY_PERMISSION": "see_about_page",
-        "ENABLE_SHOPPING_CART": True,
-        "ENABLE_PAID_COURSE_REGISTRATION": True,
-        "SESSION_COOKIE_DOMAIN": "test_logistration.localhost",
-    },
-    "default": {
-        "university": "default_university",
-        "domain_prefix": "www",
-    }
-}
-MICROSITE_TEST_HOSTNAME = 'test-site.testserver'
-MICROSITE_LOGISTRATION_HOSTNAME = 'logistration.testserver'
 
 TEST_THEME = COMMON_ROOT / "test" / "test-theme"
 
@@ -368,3 +296,5 @@ derive_settings(__name__)
 SYSTEM_WIDE_ROLE_CLASSES = os.environ.get("SYSTEM_WIDE_ROLE_CLASSES", [])
 
 DEFAULT_MOBILE_AVAILABLE = True
+
+PROCTORING_SETTINGS = {}

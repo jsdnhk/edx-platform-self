@@ -1,6 +1,8 @@
 """
 Defines a form for providing validation of CourseEmail templates.
 """
+
+
 import logging
 
 from django import forms

@@ -1,5 +1,5 @@
 """Django admin for course_modes"""
-from __future__ import absolute_import, unicode_literals
+
 
 import six
 from django import forms
@@ -76,10 +76,10 @@ class CourseModeForm(forms.ModelForm):
 
         default_tz = timezone(settings.TIME_ZONE)
 
-        if self.instance._expiration_datetime:  # pylint: disable=protected-access
+        if self.instance._expiration_datetime:
             # django admin is using default timezone. To avoid time conversion from db to form
             # convert the UTC object to naive and then localize with default timezone.
-            _expiration_datetime = self.instance._expiration_datetime.replace(  # pylint: disable=protected-access
+            _expiration_datetime = self.instance._expiration_datetime.replace(
                 tzinfo=None
             )
             self.initial["_expiration_datetime"] = default_tz.localize(_expiration_datetime)
@@ -180,6 +180,8 @@ class CourseModeForm(forms.ModelForm):
 class CourseModeAdmin(admin.ModelAdmin):
     """Admin for course modes"""
     form = CourseModeForm
+
+    raw_id_fields = ['course']
 
     fields = (
         'course',

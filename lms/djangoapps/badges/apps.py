@@ -4,7 +4,6 @@ Badges Application Configuration
 Signal handlers are connected here.
 """
 
-from __future__ import absolute_import
 
 from django.apps import AppConfig
 
@@ -19,4 +18,4 @@ class BadgesConfig(AppConfig):
         """
         Connect signal handlers.
         """
-        from . import handlers  # pylint: disable=unused-variable
+        from . import handlers  # pylint: disable=unused-import

@@ -2,7 +2,7 @@
 Test for assets cleanup of courses for Mac OS metadata files (with filename ".DS_Store"
 or with filename which starts with "._")
 """
-from __future__ import absolute_import
+
 
 from django.conf import settings
 from django.core.management import call_command
@@ -64,9 +64,9 @@ class ExportAllCourses(ModuleStoreTestCase):
         query['_id.name'] = all_assets[0]['_id']['name']
         asset_doc = self.content_store.fs_files.find_one(query)
         asset_doc['_id']['name'] = u'._example_test.txt'
-        self.content_store.fs_files.insert(asset_doc)
+        self.content_store.fs_files.insert_one(asset_doc)
         asset_doc['_id']['name'] = u'.DS_Store'
-        self.content_store.fs_files.insert(asset_doc)
+        self.content_store.fs_files.insert_one(asset_doc)
 
         # check that now course has four assets
         all_assets, count = self.content_store.get_all_content_for_course(course.id)

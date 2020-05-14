@@ -1,7 +1,7 @@
 """
 This file contains view functions for wrapping the django-wiki.
 """
-from __future__ import absolute_import
+
 
 import logging
 import re
@@ -14,7 +14,7 @@ from wiki.core.exceptions import NoRootURL
 from wiki.models import Article, URLPath
 
 from course_wiki.utils import course_wiki_slug
-from courseware.courses import get_course_by_id
+from lms.djangoapps.courseware.courses import get_course_by_id
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
 from openedx.core.djangolib.markup import Text
 from openedx.features.enterprise_support.api import data_sharing_consent_required
@@ -22,7 +22,7 @@ from openedx.features.enterprise_support.api import data_sharing_consent_require
 log = logging.getLogger(__name__)
 
 
-def root_create(request):  # pylint: disable=unused-argument
+def root_create(request):
     """
     In the edX wiki, we don't show the root_create view. Instead, we
     just create the root automatically if it doesn't exist.
@@ -32,7 +32,7 @@ def root_create(request):  # pylint: disable=unused-argument
 
 
 @data_sharing_consent_required
-def course_wiki_redirect(request, course_id, wiki_path=""):  # pylint: disable=unused-argument
+def course_wiki_redirect(request, course_id, wiki_path=""):
     """
     This redirects to whatever page on the wiki that the course designates
     as it's home page. A course's wiki must be an article on the root (for

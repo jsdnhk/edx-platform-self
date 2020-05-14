@@ -1,7 +1,7 @@
 """
 Configuration for the lti_provider Django application.
 """
-from __future__ import absolute_import
+
 
 from django.apps import AppConfig
 
@@ -15,4 +15,4 @@ class LtiProviderConfig(AppConfig):
 
     def ready(self):
         # Import the tasks module to ensure that signal handlers are registered.
-        from . import signals  # pylint: disable=unused-variable
+        from . import signals  # pylint: disable=unused-import

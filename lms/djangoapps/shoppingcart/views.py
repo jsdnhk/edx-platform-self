@@ -1,6 +1,5 @@
 """This module contains views related to shopping cart"""
 
-from __future__ import absolute_import
 
 import datetime
 import decimal
@@ -33,7 +32,7 @@ from opaque_keys.edx.keys import CourseKey
 from opaque_keys.edx.locator import CourseLocator
 
 from course_modes.models import CourseMode
-from courseware.courses import get_course_by_id
+from lms.djangoapps.courseware.courses import get_course_by_id
 from edxmako.shortcuts import render_to_response
 from openedx.core.djangoapps.embargo import api as embargo_api
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
@@ -495,9 +494,7 @@ def use_registration_code(course_reg, user):
     else:
         applicable_cart_items = [
             cart_item for cart_item in cart_items
-            if (
-                (isinstance(cart_item, PaidCourseRegistration) or isinstance(cart_item, CourseRegCodeItem))and cart_item.qty == 1
-            )
+            if isinstance(cart_item, (CourseRegCodeItem, PaidCourseRegistration)) and cart_item.qty == 1
         ]
         if not applicable_cart_items:
             return HttpResponseNotFound(

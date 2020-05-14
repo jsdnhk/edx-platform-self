@@ -1,8 +1,7 @@
-# pylint: disable=invalid-name
 """
 Utility library for working with the edx-milestones app
 """
-from __future__ import absolute_import
+
 
 import six
 from django.conf import settings
@@ -107,7 +106,7 @@ def set_prerequisite_courses(course_key, prerequisite_course_keys):
             add_prerequisite_course(course_key, prerequisite_course_key)
 
 
-def get_pre_requisite_courses_not_completed(user, enrolled_courses):  # pylint: disable=invalid-name
+def get_pre_requisite_courses_not_completed(user, enrolled_courses):
     """
     Makes a dict mapping courses to their unfulfilled milestones using the
     fulfillment API of the milestones app.
@@ -405,6 +404,7 @@ def any_unfulfilled_milestones(course_id, user_id):
     if not settings.FEATURES.get('MILESTONES_APP'):
         return False
 
+    user_id = None if user_id is None else int(user_id)
     fulfillment_paths = milestones_api.get_course_milestones_fulfillment_paths(course_id, {'id': user_id})
 
     # Returns True if any of the milestones is unfulfilled. False if

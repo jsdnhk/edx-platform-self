@@ -2,7 +2,7 @@
 Entrance Exams view module -- handles all requests related to entrance exam management via Studio
 Intended to be utilized as an AJAX callback handler, versus a proper view/screen
 """
-from __future__ import absolute_import
+
 
 import logging
 from functools import wraps
@@ -41,7 +41,6 @@ def _get_default_entrance_exam_minimum_pct():
     return entrance_exam_minimum_score_pct
 
 
-# pylint: disable=missing-docstring
 def check_feature_enabled(feature_name):
     """
     Ensure the specified feature is turned on.  Return an HTTP 400 code if not.
@@ -164,7 +163,7 @@ def _create_entrance_exam(request, course_key, entrance_exam_minimum_score_pct=N
     return HttpResponse(status=201)
 
 
-def _get_entrance_exam(request, course_key):  # pylint: disable=W0613
+def _get_entrance_exam(request, course_key):
     """
     Internal workflow operation to retrieve an entrance exam
     """

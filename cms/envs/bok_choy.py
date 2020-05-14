@@ -11,7 +11,6 @@ support both generating static assets to a directory and also serving static
 from the same directory.
 """
 
-from __future__ import absolute_import
 
 # Silence noisy logs
 import logging
@@ -33,6 +32,7 @@ os.environ['CONFIG_ROOT'] = path(__file__).abspath().dirname()
 os.environ['STUDIO_CFG'] = str.format("{config_root}/{service_variant}.yml",
                                       config_root=os.environ['CONFIG_ROOT'],
                                       service_variant=os.environ['SERVICE_VARIANT'])
+os.environ['REVISION_CFG'] = "{config_root}/revisions.yml".format(config_root=os.environ['CONFIG_ROOT'])
 
 from .production import *  # pylint: disable=wildcard-import, unused-wildcard-import, wrong-import-position
 
@@ -171,6 +171,8 @@ VIDEO_TRANSCRIPTS_SETTINGS = dict(
     ),
     DIRECTORY_PREFIX='video-transcripts/',
 )
+
+INSTALLED_APPS.append('openedx.testing.coverage_context_listener')
 
 #####################################################################
 # Lastly, see if the developer has any local overrides.

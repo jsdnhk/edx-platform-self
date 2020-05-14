@@ -2,6 +2,7 @@
 Fixture to configure XQueue response.
 """
 
+
 import json
 
 import requests

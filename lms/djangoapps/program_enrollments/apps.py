@@ -2,7 +2,7 @@
 """
 ProgramEnrollments Application Configuration
 """
-from __future__ import absolute_import, unicode_literals
+
 
 from django.apps import AppConfig
 
@@ -20,7 +20,7 @@ class ProgramEnrollmentsConfig(AppConfig):
             ProjectType.LMS: {
                 PluginURLs.NAMESPACE: 'programs_api',
                 PluginURLs.REGEX: 'api/program_enrollments/',
-                PluginURLs.RELATIVE_PATH: 'api.urls',
+                PluginURLs.RELATIVE_PATH: 'rest_api.urls',
             }
         },
     }
@@ -29,5 +29,5 @@ class ProgramEnrollmentsConfig(AppConfig):
         """
         Connect handlers to signals.
         """
-        from . import signals  # pylint: disable=unused-variable
-        from . import tasks    # pylint: disable=unused-variable
+        from . import signals  # pylint: disable=unused-import
+        from . import tasks    # pylint: disable=unused-import

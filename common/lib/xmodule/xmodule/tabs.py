@@ -1,16 +1,17 @@
 """
 Implement CourseTab
 """
-from __future__ import absolute_import
+
 
 import logging
 from abc import ABCMeta
 
 import six
 from django.core.files.storage import get_storage_class
-from openedx.core.lib.plugins import PluginError
 from six import text_type
 from xblock.fields import List
+
+from openedx.core.lib.plugins import PluginError
 
 log = logging.getLogger("edx.courseware")
 
@@ -172,6 +173,10 @@ class CourseTab(six.with_metaclass(ABCMeta, object)):
         """
         return not self == other
 
+    def __hash__(self):
+        """ Return a hash representation of Tab Object. """
+        return hash(repr(self))
+
     @classmethod
     def validate(cls, tab_dict, raise_error=True):
         """
@@ -294,6 +299,10 @@ class TabFragmentViewMixin(object):
         """
         return self.fragment_view.render_to_fragment(request, course_id=six.text_type(course.id), **kwargs)
 
+    def __hash__(self):
+        """ Return a hash representation of Tab Object. """
+        return hash(repr(self))
+
 
 class StaticTab(CourseTab):
     """
@@ -358,6 +367,10 @@ class StaticTab(CourseTab):
         if not super(StaticTab, self).__eq__(other):
             return False
         return self.url_slug == other.get('url_slug')
+
+    def __hash__(self):
+        """ Return a hash representation of Tab Object. """
+        return hash(repr(self))
 
 
 class CourseTabList(List):
