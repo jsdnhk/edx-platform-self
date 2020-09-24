@@ -13,7 +13,7 @@ from path import Path
 # TODO: Remove the rest of the sys.path modification here and in (cms|lms)/envs/common.py
 REPO_ROOT = Path(__file__).abspath().dirname().dirname().dirname()  # /edx-platform/
 sys.path.append(REPO_ROOT / 'common' / 'djangoapps')
-sys.path.append(REPO_ROOT / 'lms' / 'djangoapps')
+sys.path.append(REPO_ROOT / 'sys_path_hacks' / 'lms')
 
 ALL_LANGUAGES = []
 
@@ -64,7 +64,6 @@ INSTALLED_APPS = (
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.sites',
-    'djcelery',
     'django_sites_extensions',
     'openedx.core.djangoapps.django_comment_common',
     'openedx.core.djangoapps.video_config',
@@ -80,6 +79,7 @@ INSTALLED_APPS = (
     'openedx.core.djangoapps.user_api',
     'course_modes.apps.CourseModesConfig',
     'lms.djangoapps.verify_student.apps.VerifyStudentConfig',
+    'openedx.core.djangoapps.content_libraries',
     'openedx.core.djangoapps.dark_lang',
     'openedx.core.djangoapps.content.course_overviews.apps.CourseOverviewsConfig',
     'openedx.core.djangoapps.content.block_structure.apps.BlockStructureConfig',
@@ -88,8 +88,9 @@ INSTALLED_APPS = (
     'openedx.core.djangoapps.schedules.apps.SchedulesConfig',
     'openedx.core.djangoapps.theming.apps.ThemingConfig',
     'openedx.core.djangoapps.external_user_ids',
+    'openedx.core.djangoapps.demographics',
 
-    'experiments',
+    'lms.djangoapps.experiments',
     'openedx.features.content_type_gating',
     'openedx.features.course_duration_limits',
     'openedx.features.discounts',
@@ -102,6 +103,7 @@ INSTALLED_APPS = (
     # Django 1.11 demands to have imported models supported by installed apps.
     'completion',
     'entitlements',
+    'organizations',
 )
 
 LMS_ROOT_URL = "http://localhost:8000"
@@ -126,6 +128,8 @@ RETIRED_USERNAME_PREFIX = 'retired__user_'
 
 PROCTORING_SETTINGS = {}
 
+ROOT_URLCONF = None
+RUN_BLOCKSTORE_TESTS = False
 
 # Software Secure request retry settings
 # Time in seconds before a retry of the task should be 60 mints.

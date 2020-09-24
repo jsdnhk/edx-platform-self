@@ -21,7 +21,7 @@ clean: ## archive and delete most git-ignored files
 
 SWAGGER = docs/swagger.yaml
 
-docs: api-docs guides ## build all the developer documentation for this repository
+docs: api-docs guides feature-toggles-docs ## build all the developer documentation for this repository
 
 swagger: ## generate the swagger.yaml file
 	DJANGO_SETTINGS_MODULE=docs.docs_settings python manage.py lms generate_swagger --generator-class=edx_api_doc_tools.ApiSchemaGenerator -o $(SWAGGER)
@@ -32,6 +32,9 @@ api-docs-sphinx: swagger	## generate the sphinx source files for api-docs
 
 api-docs: api-docs-sphinx	## build the REST api docs
 	cd docs/api; make html
+
+feature-toggles-docs:
+	$(MAKE) -C docs/featuretoggles html
 
 guides:	## build the developer guide docs
 	cd docs/guides; make clean html
@@ -75,6 +78,7 @@ shell: ## launch a bash shell in a Docker container with all edx-platform depend
 REQ_FILES = \
 	requirements/edx/pip-tools \
 	requirements/edx/coverage \
+	requirements/edx/doc \
 	requirements/edx/paver \
 	requirements/edx-sandbox/shared \
 	requirements/edx-sandbox/py35 \
@@ -96,7 +100,30 @@ upgrade: ## update the pip requirements files to use the latest releases satisfy
 	done
 	# Post process all of the files generated above to work around open pip-tools issues
 	scripts/post-pip-compile.sh $(REQ_FILES:=.txt)
-	# Let tox control the Django version & django-oauth-toolkit version for tests
-	grep -e "^django==" -e "^django-oauth-toolkit==" requirements/edx/base.txt > requirements/edx/django.txt
-	sed '/^[dD]jango==/d;/^django-oauth-toolkit==/d' requirements/edx/testing.txt > requirements/edx/testing.tmp
+	# Let tox control the Django version for tests
+	grep -e "^django==" requirements/edx/base.txt > requirements/edx/django.txt
+	sed '/^[dD]jango==/d' requirements/edx/testing.txt > requirements/edx/testing.tmp
 	mv requirements/edx/testing.tmp requirements/edx/testing.txt
+
+# These make targets currently only build LMS images.
+docker_build:
+	docker build . -f Dockerfile --target lms -t openedx/edx-platform
+	docker build . -f Dockerfile --target lms-newrelic -t openedx/edx-platform:latest-newrelic
+	docker build . -f Dockerfile --target lms-devstack -t openedx/edx-platform:latest-devstack
+
+docker_tag: docker_build
+	docker tag openedx/edx-platform openedx/edx-platform:${GITHUB_SHA}
+	docker tag openedx/edx-platform:latest-newrelic openedx/edx-platform:${GITHUB_SHA}-newrelic
+	docker tag openedx/edx-platform:latest-devstack openedx/edx-platform:${GITHUB_SHA}-devstack
+
+docker_auth:
+	echo "$$DOCKERHUB_PASSWORD" | docker login -u "$$DOCKERHUB_USERNAME" --password-stdin
+
+docker_push: docker_tag docker_auth ## push to docker hub
+	docker push 'openedx/edx-platform:latest'
+	docker push "openedx/edx-platform:${GITHUB_SHA}"
+	docker push 'openedx/edx-platform:latest-newrelic'
+	docker push "openedx/edx-platform:${GITHUB_SHA}-newrelic"
+	docker push 'openedx/edx-platform:latest-devstack'
+	docker push "openedx/edx-platform:${GITHUB_SHA}-devstack"
+

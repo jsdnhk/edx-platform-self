@@ -13,7 +13,6 @@ file and check it in at the same time as your model changes. To do that,
 
 
 import hashlib
-import inspect
 import json
 import logging
 import uuid
@@ -71,6 +70,7 @@ from openedx.core.djangoapps.enrollments.api import (
     get_enrollment_attributes,
     set_enrollment_attributes
 )
+from openedx.core.djangoapps.signals.signals import USER_ACCOUNT_ACTIVATED
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
 from openedx.core.djangoapps.xmodule_django.models import NoneToEmptyManager
 from openedx.core.djangolib.model_mixins import DeletableByUserValue
@@ -840,6 +840,7 @@ class Registration(models.Model):
     def activate(self):
         self.user.is_active = True
         self.user.save(update_fields=['is_active'])
+        USER_ACCOUNT_ACTIVATED.send_robust(self.__class__, user=self.user)
         log.info(u'User %s (%s) account is successfully activated.', self.user.username, self.user.email)
 
 
@@ -971,6 +972,16 @@ class LoginFailures(models.Model):
         record.save()
 
     @classmethod
+    def check_user_reset_password_threshold(cls, user):
+        """
+        Checks if the user is above threshold for reset password message.
+        """
+        record, _ = LoginFailures.objects.get_or_create(user=user)
+        max_failures_allowed = settings.MAX_FAILED_LOGIN_ATTEMPTS_ALLOWED
+
+        return record.failure_count >= max_failures_allowed / 2, record.failure_count
+
+    @classmethod
     def clear_lockout_counter(cls, user):
         """
         Removes the lockout counters (normally called after a successful login)
@@ -1019,19 +1030,20 @@ class CourseEnrollmentManager(models.Manager):
     Custom manager for CourseEnrollment with Table-level filter methods.
     """
 
-    def num_enrolled_in(self, course_id):
+    def is_small_course(self, course_id):
         """
-        Returns the count of active enrollments in a course.
+        Returns false if the number of enrollments are one greater than 'max_enrollments' else true
 
         'course_id' is the course_id to return enrollments
         """
+        max_enrollments = settings.FEATURES.get("MAX_ENROLLMENT_INSTR_BUTTONS")
 
         enrollment_number = super(CourseEnrollmentManager, self).get_queryset().filter(
             course_id=course_id,
             is_active=1
-        ).count()
+        )[:max_enrollments + 1].count()
 
-        return enrollment_number
+        return enrollment_number <= max_enrollments
 
     def num_enrolled_in_exclude_admins(self, course_id):
         """
@@ -1407,7 +1419,7 @@ class CourseEnrollment(models.Model):
                 )
 
     @classmethod
-    def enroll(cls, user, course_key, mode=None, check_access=False):
+    def enroll(cls, user, course_key, mode=None, check_access=False, can_upgrade=False):
         """
         Enroll a user in a course. This saves immediately.
 
@@ -1430,6 +1442,11 @@ class CourseEnrollment(models.Model):
                 The default is set to False to avoid breaking legacy code or
                 code with non-standard flows (ex. beta tester invitations), but
                 for any standard enrollment flow you probably want this to be True.
+
+        `can_upgrade`: if course is upgradeable, alow learners to enroll even
+                if enrollment is closed. This is a special case for entitlements
+                while selecting a session. The default is set to False to avoid
+                breaking the orignal course enroll code.
 
         Exceptions that can be raised: NonExistentCourseError,
         EnrollmentClosedError, CourseFullError, AlreadyEnrolledError.  All these
@@ -1454,7 +1471,7 @@ class CourseEnrollment(models.Model):
                 raise NonExistentCourseError
 
         if check_access:
-            if cls.is_enrollment_closed(user, course):
+            if cls.is_enrollment_closed(user, course) and not can_upgrade:
                 log.warning(
                     u"User %s failed to enroll in course %s because enrollment is closed",
                     user.username,
@@ -2894,6 +2911,18 @@ class BulkUnenrollConfiguration(ConfigurationModel):
     )
 
 
+class BulkChangeEnrollmentConfiguration(ConfigurationModel):
+    """
+    config model for the bulk_change_enrollment_csv command
+    """
+    csv_file = models.FileField(
+        validators=[FileExtensionValidator(allowed_extensions=[u'csv'])],
+        help_text=_(u"It expect that the data will be provided in a csv file format with \
+                    first row being the header and columns will be as follows: \
+                    course_id, username, mode")
+    )
+
+
 @python_2_unicode_compatible
 class UserAttribute(TimeStampedModel):
     """
@@ -3038,3 +3067,39 @@ class AccountRecoveryConfiguration(ConfigurationModel):
                     first row being the header and columns will be as follows: \
                     username, email, new_email")
     )
+
+
+class CourseEnrollmentCelebration(TimeStampedModel):
+    """
+    Keeps track of how we've celebrated a user's course progress.
+
+    An example of a celebration is a dialog that pops up after you complete your first section
+    in a course saying "good job!". Just some positive feedback like that. (This specific example is
+    controlled by the celebrated_first_section field below.)
+
+    In general, if a row does not exist for an enrollment, we don't want to show any celebrations.
+    We don't want to suddenly inject celebrations in the middle of a course, because they
+    might not make contextual sense and it's an inconsistent experience. The helper methods below
+    (starting with "should_") can help by looking up values with appropriate fallbacks.
+
+    See the create_course_enrollment_celebration signal handler for how these get created.
+
+    .. no_pii:
+    """
+    enrollment = models.OneToOneField(CourseEnrollment, models.CASCADE, related_name='celebration')
+    celebrate_first_section = models.BooleanField(default=False)
+
+    def __str__(self):
+        return (
+            "[CourseEnrollmentCelebration] course: {}; user: {}; first_section: {}"
+        ).format(self.enrollment.course.id, self.enrollment.user.username, self.celebrate_first_section)
+
+    @staticmethod
+    def should_celebrate_first_section(enrollment):
+        """ Returns the celebration value for first_section with appropriate fallback if it doesn't exist """
+        if not enrollment:
+            return False
+        try:
+            return enrollment.celebration.celebrate_first_section
+        except CourseEnrollmentCelebration.DoesNotExist:
+            return False

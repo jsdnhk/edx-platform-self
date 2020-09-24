@@ -14,6 +14,7 @@ if os.environ['EDX_PLATFORM_SETTINGS'] == 'devstack_docker':
         COURSE_IMPORT_EXPORT_STORAGE,
         SCRAPE_YOUTUBE_THUMBNAILS_JOB_QUEUE,
         VIDEO_TRANSCRIPT_MIGRATIONS_JOB_QUEUE,
+        UPDATE_SEARCH_INDEX_JOB_QUEUE,
     )
 else:
     from lms.envs.devstack import *
@@ -22,6 +23,7 @@ else:
         COURSE_IMPORT_EXPORT_STORAGE,
         SCRAPE_YOUTUBE_THUMBNAILS_JOB_QUEUE,
         VIDEO_TRANSCRIPT_MIGRATIONS_JOB_QUEUE,
+        UPDATE_SEARCH_INDEX_JOB_QUEUE,
     )
 
 # Turn on all the boolean feature flags, so that conditionally included
@@ -38,5 +40,5 @@ INSTALLED_APPS.extend([
     'course_creators',
     'xblock_config.apps.XBlockConfig',
     'user_tasks',
-    'lti_provider'
+    'lms.djangoapps.lti_provider'
 ])

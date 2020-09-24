@@ -5,12 +5,20 @@ Tests for Blockstore-based Content Libraries
 import unittest
 from uuid import UUID
 
+import ddt
+from django.conf import settings
 from django.contrib.auth.models import Group
+from django.test.utils import override_settings
+from mock import patch
+from organizations.models import Organization
 
-from openedx.core.djangoapps.content_libraries.tests.base import ContentLibrariesRestApiTest
+from openedx.core.djangoapps.content_libraries.tests.base import ContentLibrariesRestApiTest, elasticsearch_test
+from openedx.core.djangoapps.content_libraries.api import BlockLimitReachedError
 from student.tests.factories import UserFactory
 
 
+@ddt.ddt
+@elasticsearch_test
 class ContentLibrariesTest(ContentLibrariesRestApiTest):
     """
     General tests for Blockstore-based Content Libraries
@@ -79,6 +87,72 @@ class ContentLibrariesTest(ContentLibrariesRestApiTest):
         self._create_library(slug="some-slug", title="Duplicate Library", expect_response=400)
 
         self._create_library(slug="Invalid Slug!", title="Library with Bad Slug", expect_response=400)
+
+    @ddt.data(True, False)
+    @patch("openedx.core.djangoapps.content_libraries.views.LibraryApiPagination.page_size", new=2)
+    def test_list_library(self, is_indexing_enabled):
+        """
+        Test the /libraries API and its pagination
+        """
+        with override_settings(FEATURES={**settings.FEATURES, 'ENABLE_CONTENT_LIBRARY_INDEX': is_indexing_enabled}):
+            lib1 = self._create_library(slug="some-slug-1", title="Existing Library")
+            lib2 = self._create_library(slug="some-slug-2", title="Existing Library")
+            if not is_indexing_enabled:
+                lib1['num_blocks'] = lib2['num_blocks'] = None
+                lib1['last_published'] = lib2['last_published'] = None
+                lib1['has_unpublished_changes'] = lib2['has_unpublished_changes'] = None
+                lib1['has_unpublished_deletes'] = lib2['has_unpublished_deletes'] = None
+
+            result = self._list_libraries()
+            self.assertEqual(len(result), 2)
+            self.assertIn(lib1, result)
+            self.assertIn(lib2, result)
+            result = self._list_libraries({'pagination': 'true'})
+            self.assertEqual(len(result['results']), 2)
+            self.assertEqual(result['next'], None)
+
+            # Create another library which causes number of libraries to exceed the page size
+            self._create_library(slug="some-slug-3", title="Existing Library")
+            # Verify that if `pagination` param isn't sent, API still honors the max page size.
+            # This is for maintaining compatibility with older non pagination-aware clients.
+            result = self._list_libraries()
+            self.assertEqual(len(result), 2)
+
+            # Pagination enabled:
+            # Verify total elements and valid 'next' in page 1
+            result = self._list_libraries({'pagination': 'true'})
+            self.assertEqual(len(result['results']), 2)
+            self.assertIn('page=2', result['next'])
+            self.assertIn('pagination=true', result['next'])
+            # Verify total elements and null 'next' in page 2
+            result = self._list_libraries({'pagination': 'true', 'page': '2'})
+            self.assertEqual(len(result['results']), 1)
+            self.assertEqual(result['next'], None)
+
+    @ddt.data(True, False)
+    def test_library_filters(self, is_indexing_enabled):
+        """
+        Test the filters in the list libraries API
+        """
+        with override_settings(FEATURES={**settings.FEATURES, 'ENABLE_CONTENT_LIBRARY_INDEX': is_indexing_enabled}):
+            self._create_library(slug="test-lib1", title="Foo", description="Bar")
+            self._create_library(slug="test-lib2", title="Library-Title-2", description="Bar2")
+            self._create_library(slug="l3", title="Library-Title-3", description="Description")
+
+            Organization.objects.get_or_create(
+                short_name="org-test",
+                defaults={"name": "Content Libraries Tachyon Exploration & Survey Team"},
+            )
+            self._create_library(slug="l4", title="Library-Title-4", description="Library-Description", org='org-test')
+            self._create_library(slug="l5", title="Library-Title-5", description="Library-Description", org='org-test')
+
+            self.assertEqual(len(self._list_libraries()), 5)
+            self.assertEqual(len(self._list_libraries({'org': 'org-test'})), 2)
+            self.assertEqual(len(self._list_libraries({'text_search': 'test-lib'})), 2)
+            self.assertEqual(len(self._list_libraries({'text_search': 'library-title'})), 4)
+            self.assertEqual(len(self._list_libraries({'text_search': 'bar'})), 2)
+            self.assertEqual(len(self._list_libraries({'text_search': 'org-tes'})), 2)
+            self.assertEqual(len(self._list_libraries({'org': 'org-test', 'text_search': 'library-title-4'})), 1)
 
     # General Content Library XBlock tests:
 
@@ -170,6 +244,56 @@ class ContentLibrariesTest(ContentLibrariesRestApiTest):
         self.assertEqual(self._get_library_block_olx(block_id), orig_olx)
 
         # fin
+
+    @ddt.data(True, False)
+    @patch("openedx.core.djangoapps.content_libraries.views.LibraryApiPagination.page_size", new=2)
+    def test_list_library_blocks(self, is_indexing_enabled):
+        """
+        Test the /libraries/{lib_key_str}/blocks API and its pagination
+        """
+        with override_settings(FEATURES={**settings.FEATURES, 'ENABLE_CONTENT_LIBRARY_INDEX': is_indexing_enabled}):
+            lib = self._create_library(slug="list_blocks-slug" + str(is_indexing_enabled), title="Library 1")
+            block1 = self._add_block_to_library(lib["id"], "problem", "problem1")
+            block2 = self._add_block_to_library(lib["id"], "unit", "unit1")
+
+            self._add_block_to_library(lib["id"], "problem", "problem2", parent_block=block2["id"])
+
+            result = self._get_library_blocks(lib["id"])
+            self.assertEqual(len(result), 2)
+            self.assertIn(block1, result)
+
+            result = self._get_library_blocks(lib["id"], {'pagination': 'true'})
+            self.assertEqual(len(result['results']), 2)
+            self.assertEqual(result['next'], None)
+
+            self._add_block_to_library(lib["id"], "problem", "problem3")
+            # Test pagination
+            result = self._get_library_blocks(lib["id"])
+            self.assertEqual(len(result), 3)
+            result = self._get_library_blocks(lib["id"], {'pagination': 'true'})
+            self.assertEqual(len(result['results']), 2)
+            self.assertIn('page=2', result['next'])
+            self.assertIn('pagination=true', result['next'])
+            result = self._get_library_blocks(lib["id"], {'pagination': 'true', 'page': '2'})
+            self.assertEqual(len(result['results']), 1)
+            self.assertEqual(result['next'], None)
+
+    @ddt.data(True, False)
+    def test_library_blocks_filters(self, is_indexing_enabled):
+        """
+        Test the filters in the list libraries API
+        """
+        with override_settings(FEATURES={**settings.FEATURES, 'ENABLE_CONTENT_LIBRARY_INDEX': is_indexing_enabled}):
+            lib = self._create_library(slug="test-lib-blocks" + str(is_indexing_enabled), title="Title")
+            block1 = self._add_block_to_library(lib["id"], "problem", "foo-bar")
+            self._add_block_to_library(lib["id"], "problem", "foo-baz")
+            self._add_block_to_library(lib["id"], "problem", "bar-baz")
+
+            self._set_library_block_olx(block1["id"], "<problem display_name=\"DisplayName\"></problem>")
+
+            self.assertEqual(len(self._get_library_blocks(lib["id"])), 3)
+            self.assertEqual(len(self._get_library_blocks(lib["id"], {'text_search': 'Foo'})), 2)
+            self.assertEqual(len(self._get_library_blocks(lib["id"], {'text_search': 'Display'})), 1)
 
     def test_library_blocks_with_hierarchy(self):
         """
@@ -443,3 +567,16 @@ class ContentLibrariesTest(ContentLibrariesRestApiTest):
         self.assertEqual(links_created[1]["version"], 1)
         self.assertEqual(links_created[1]["latest_version"], 2)
         self.assertEqual(links_created[1]["opaque_key"], bank_lib_id)
+
+    def test_library_blocks_limit(self):
+        """
+        Test that libraries don't allow more than specified blocks
+        """
+        with self.settings(MAX_BLOCKS_PER_CONTENT_LIBRARY=1):
+            lib = self._create_library(slug="test_lib_limits", title="Limits Test Library", description="Testing XBlocks limits in a library")
+            lib_id = lib["id"]
+            block_data = self._add_block_to_library(lib_id, "unit", "unit1")
+            # Second block should throw error
+            self._add_block_to_library(lib_id, "problem", "problem1", expect_response=400)
+            # Also check that limit applies to child blocks too
+            self._add_block_to_library(lib_id, "html", "html1", parent_block=block_data['id'], expect_response=400)

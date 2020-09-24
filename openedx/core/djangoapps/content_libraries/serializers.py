@@ -8,6 +8,8 @@ from rest_framework import serializers
 from openedx.core.djangoapps.content_libraries.models import ContentLibraryPermission
 from openedx.core.lib import blockstore_api
 
+DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
+
 
 class ContentLibraryMetadataSerializer(serializers.Serializer):
     """
@@ -25,7 +27,9 @@ class ContentLibraryMetadataSerializer(serializers.Serializer):
     collection_uuid = serializers.UUIDField(format='hex_verbose', write_only=True)
     title = serializers.CharField()
     description = serializers.CharField(allow_blank=True)
+    num_blocks = serializers.IntegerField(read_only=True)
     version = serializers.IntegerField(read_only=True)
+    last_published = serializers.DateTimeField(format=DATETIME_FORMAT, read_only=True)
     allow_public_learning = serializers.BooleanField(default=False)
     allow_public_read = serializers.BooleanField(default=False)
     has_unpublished_changes = serializers.BooleanField(read_only=True)
@@ -68,7 +72,7 @@ class LibraryXBlockMetadataSerializer(serializers.Serializer):
     """
     id = serializers.CharField(source="usage_key", read_only=True)
     def_key = serializers.CharField(read_only=True)
-    block_type = serializers.CharField(source="def_key.block_type")
+    block_type = serializers.CharField(source="usage_key.block_type")
     display_name = serializers.CharField(read_only=True)
     has_unpublished_changes = serializers.BooleanField(read_only=True)
     # When creating a new XBlock in a library, the slug becomes the ID part of

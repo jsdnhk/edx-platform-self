@@ -15,11 +15,14 @@ $static-path: '../..';
 @import 'layouts';
 @import 'components';
 @import 'course/layout/courseware_preview';
-@import 'course/layout/reset_deadlines';
+@import 'course/layout/banner_cta';
 @import 'shared/modal';
 @import 'shared/help-tab';
 @import './elements/banners';
 @import './elements/progress-circle';
+@import './elements/program-card';
+@import 'elements/icons';
+@import './elements/pagination';
 
 // Features
 @import 'features/bookmarks';
@@ -36,6 +39,7 @@ $static-path: '../..';
 @import "views/entitlement-support-page";
 @import "views/course-entitlements";
 @import "views/program-details";
+@import 'views/program-list';
 
 // Responsive Design
 @import '../header';

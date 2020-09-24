@@ -6,12 +6,14 @@ from datetime import datetime
 
 import ddt
 import mock
+from completion.test_utils import CompletionWaffleTestMixin, submit_completions_for_testing
 from django.conf import settings
 
 from lms.djangoapps.courseware.access_utils import ACCESS_DENIED, ACCESS_GRANTED
 from lms.djangoapps.courseware.tabs import ExternalLinkCourseTab
-from student.models import CourseEnrollment
-from student.tests.factories import UserFactory
+from lms.djangoapps.courseware.tests.helpers import MasqueradeMixin
+from student.models import CourseEnrollment, CourseEnrollmentCelebration
+from student.tests.factories import CourseEnrollmentCelebrationFactory, UserFactory
 from xmodule.modulestore.django import modulestore
 from xmodule.modulestore.tests.django_utils import TEST_DATA_SPLIT_MODULESTORE, SharedModuleStoreTestCase
 from xmodule.modulestore.tests.factories import ItemFactory, ToyCourseFactory
@@ -35,6 +37,9 @@ class BaseCoursewareTests(SharedModuleStoreTestCase):
             emit_signals=True,
             modulestore=cls.store,
         )
+        cls.chapter = ItemFactory(parent=cls.course, category='chapter')
+        cls.sequence = ItemFactory(parent=cls.chapter, category='sequential', display_name='sequence')
+        cls.unit = ItemFactory.create(parent=cls.sequence, category='vertical', display_name="Vertical")
 
         cls.user = UserFactory(
             username='student',
@@ -76,7 +81,9 @@ class CourseApiTestViews(BaseCoursewareTests):
         (False, None, ACCESS_GRANTED),
     )
     @ddt.unpack
-    def test_course_metadata(self, logged_in, enrollment_mode, enable_anonymous):
+    @mock.patch('openedx.core.djangoapps.courseware_api.views.CoursewareMeta.is_microfrontend_enabled_for_user')
+    def test_course_metadata(self, logged_in, enrollment_mode, enable_anonymous, is_microfrontend_enabled_for_user):
+        is_microfrontend_enabled_for_user.return_value = True
         check_public_access = mock.Mock()
         check_public_access.return_value = enable_anonymous
         with mock.patch('lms.djangoapps.courseware.access_utils.check_public_access', check_public_access):
@@ -114,9 +121,6 @@ class SequenceApiTestViews(BaseCoursewareTests):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        chapter = ItemFactory(parent=cls.course, category='chapter')
-        cls.sequence = ItemFactory(parent=chapter, category='sequential', display_name='sequence')
-        ItemFactory.create(parent=cls.sequence, category='vertical', display_name="Vertical")
         cls.url = '/api/courseware/sequence/{}'.format(cls.sequence.location)
 
     @classmethod
@@ -125,9 +129,101 @@ class SequenceApiTestViews(BaseCoursewareTests):
         super().tearDownClass()
 
     def test_sequence_metadata(self):
-        print(self.url)
-        print(self.course.location)
         response = self.client.get(self.url)
         assert response.status_code == 200
         assert response.data['display_name'] == 'sequence'
         assert len(response.data['items']) == 1
+
+
+class ResumeApiTestViews(BaseCoursewareTests, CompletionWaffleTestMixin):
+    """
+    Tests for the resume API
+    """
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.url = '/api/courseware/resume/{}'.format(cls.course.id)
+
+    def test_resume_no_completion(self):
+        response = self.client.get(self.url)
+        assert response.status_code == 200
+        assert response.data['block_id'] is None
+        assert response.data['unit_id'] is None
+        assert response.data['section_id'] is None
+
+    def test_resume_with_completion(self):
+        self.override_waffle_switch(True)
+        submit_completions_for_testing(self.user, [self.unit.location])
+        response = self.client.get(self.url)
+        assert response.status_code == 200
+        assert response.data['block_id'] == str(self.unit.location)
+        assert response.data['unit_id'] == str(self.unit.location)
+        assert response.data['section_id'] == str(self.sequence.location)
+
+
+@ddt.ddt
+class CelebrationApiTestViews(BaseCoursewareTests, MasqueradeMixin):
+    """
+    Tests for the celebration API
+    """
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.url = '/api/courseware/celebration/{}'.format(cls.course.id)
+
+    def setUp(self):
+        super().setUp()
+        self.enrollment = CourseEnrollment.enroll(self.user, self.course.id, 'verified')
+
+    @ddt.data(True, False)
+    def test_happy_path(self, update):
+        if update:
+            CourseEnrollmentCelebrationFactory(enrollment=self.enrollment, celebrate_first_section=False)
+
+        response = self.client.post(self.url, {'first_section': True}, content_type='application/json')
+        assert response.status_code == (200 if update else 201)
+
+        celebration = CourseEnrollmentCelebration.objects.first()
+        assert celebration.celebrate_first_section
+        assert celebration.enrollment.id == self.enrollment.id
+
+    def test_extra_data(self):
+        response = self.client.post(self.url, {'extra': True}, content_type='application/json')
+        assert response.status_code == 400
+
+    def test_no_data(self):
+        response = self.client.post(self.url, {}, content_type='application/json')
+        assert response.status_code == 200
+        assert CourseEnrollmentCelebration.objects.count() == 0
+
+    def test_no_enrollment(self):
+        self.enrollment.delete()
+        response = self.client.post(self.url, {'first_section': True}, content_type='application/json')
+        assert response.status_code == 404
+
+    def test_no_login(self):
+        self.client.logout()
+        response = self.client.post(self.url, {'first_section': True}, content_type='application/json')
+        assert response.status_code == 401
+
+    def test_invalid_course(self):
+        response = self.client.post('/api/courseware/celebration/course-v1:does+not+exist',
+                                    {'first_section': True}, content_type='application/json')
+        assert response.status_code == 404
+
+    def test_masquerade(self):
+        self.user.is_staff = True
+        self.user.save()
+
+        user = UserFactory()
+        CourseEnrollment.enroll(user, self.course.id, 'verified')
+
+        response = self.client.post(self.url, {'first_section': True}, content_type='application/json')
+        assert response.status_code == 201
+
+        self.update_masquerade(username=user.username)
+        response = self.client.post(self.url, {'first_section': False}, content_type='application/json')
+        assert response.status_code == 202
+
+        celebration = CourseEnrollmentCelebration.objects.first()
+        assert celebration.celebrate_first_section  # make sure it didn't change during masquerade attempt

@@ -61,6 +61,7 @@ class CourseInfoSerializer(serializers.Serializer):  # pylint: disable=abstract-
     Compare this with CourseDetailSerializer.
     """
 
+    can_show_upgrade_sock = serializers.BooleanField()
     content_type_gating_enabled = serializers.BooleanField()
     course_expired_message = serializers.CharField()
     effort = serializers.CharField()
@@ -68,6 +69,7 @@ class CourseInfoSerializer(serializers.Serializer):  # pylint: disable=abstract-
     enrollment_start = serializers.DateTimeField()
     enrollment_end = serializers.DateTimeField()
     id = serializers.CharField()  # pylint: disable=invalid-name
+    license = serializers.CharField()
     media = _CourseApiMediaCollectionSerializer(source='*')
     name = serializers.CharField(source='display_name_with_default_escaped')
     number = serializers.CharField(source='display_number_with_default')
@@ -82,9 +84,12 @@ class CourseInfoSerializer(serializers.Serializer):  # pylint: disable=abstract-
     tabs = serializers.ListField()
     verified_mode = serializers.DictField()
     show_calculator = serializers.BooleanField()
+    original_user_is_staff = serializers.BooleanField()
     is_staff = serializers.BooleanField()
     can_load_courseware = serializers.DictField()
     notes = serializers.DictField()
+    marketing_url = serializers.CharField()
+    celebrations = serializers.DictField()
 
     def __init__(self, *args, **kwargs):
         """

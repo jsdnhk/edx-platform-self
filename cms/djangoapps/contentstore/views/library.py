@@ -36,6 +36,8 @@ from xmodule.modulestore import ModuleStoreEnum
 from xmodule.modulestore.django import modulestore
 from xmodule.modulestore.exceptions import DuplicateCourseError
 
+from ..config.waffle import REDIRECT_TO_LIBRARY_AUTHORING_MICROFRONTEND
+
 from .component import CONTAINER_TEMPLATES, get_component_templates
 from .user import user_with_role
 
@@ -44,6 +46,21 @@ __all__ = ['library_handler', 'manage_library_users']
 log = logging.getLogger(__name__)
 
 LIBRARIES_ENABLED = settings.FEATURES.get('ENABLE_CONTENT_LIBRARIES', False)
+ENABLE_LIBRARY_AUTHORING_MICROFRONTEND = settings.FEATURES.get('ENABLE_LIBRARY_AUTHORING_MICROFRONTEND', False)
+LIBRARY_AUTHORING_MICROFRONTEND_URL = settings.LIBRARY_AUTHORING_MICROFRONTEND_URL
+
+
+def should_redirect_to_library_authoring_mfe():
+    """
+    Boolean helper method, returns whether or not to redirect to the Library
+    Authoring MFE based on settings and flags.
+    """
+
+    return (
+        ENABLE_LIBRARY_AUTHORING_MICROFRONTEND and
+        LIBRARY_AUTHORING_MICROFRONTEND_URL and
+        REDIRECT_TO_LIBRARY_AUTHORING_MICROFRONTEND.is_enabled()
+    )
 
 
 def get_library_creator_status(user):
@@ -127,15 +144,33 @@ def _display_library(library_key_string, request):
 
 def _list_libraries(request):
     """
-    List all accessible libraries
+    List all accessible libraries, after applying filters in the request
+    Query params:
+        org - The organization used to filter libraries
+        text_search - The string used to filter libraries by searching in title, id or org
     """
+    org = request.GET.get('org', '')
+    text_search = request.GET.get('text_search', '').lower()
+
+    if org:
+        libraries = modulestore().get_libraries(org=org)
+    else:
+        libraries = modulestore().get_libraries()
+
     lib_info = [
         {
             "display_name": lib.display_name,
             "library_key": text_type(lib.location.library_key),
         }
-        for lib in modulestore().get_libraries()
-        if has_studio_read_access(request.user, lib.location.library_key)
+        for lib in libraries
+        if (
+            (
+                text_search in lib.display_name.lower() or
+                text_search in lib.location.library_key.org.lower() or
+                text_search in lib.location.library_key.library.lower()
+            ) and
+            has_studio_read_access(request.user, lib.location.library_key)
+        )
     ]
     return JsonResponse(lib_info)
 

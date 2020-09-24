@@ -852,6 +852,15 @@ div.problem {
 
   }
 
+  .inputtype.formulaequationinput {
+    > div {
+      input {
+        direction: ltr;
+        @include text-align(left);
+      }
+    }
+  }
+
   .trailing_text {
     @include margin-right($baseline/2);
 
@@ -994,6 +1003,19 @@ div.problem .action {
       @include float(left);
 
       white-space: nowrap;
+    }
+
+    .submit-cta {
+        display: inline-block;
+    }
+    .submit-cta-description {
+        margin-left: 8px;
+    }
+    .submit-cta-link-button {
+        background: none;
+        border: none;
+        color: $blue;
+        cursor: pointer;
     }
   }
 
